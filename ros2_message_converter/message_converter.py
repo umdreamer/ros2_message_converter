@@ -236,6 +236,10 @@ def convert_ros_message_to_dictionary(message):
         dict_message = convert_ros_message_to_dictionary(ros_message)
     """
     dictionary = {}
+    # debug:
+    # print('message type={}'.format(type(message)))
+    # print('--------------------------------message={}'.format(message))
+
     #message_fields = _get_message_fields(message)
     message_fields = message.get_fields_and_field_types()
     for (field_name, field_type) in message_fields.items():
@@ -246,16 +250,21 @@ def convert_ros_message_to_dictionary(message):
 
 def _convert_from_ros_type(field_type, field_value):
     if field_type in ros_primitive_types:
+        # print("++++++++++++ros_primitive_types: {} = {}".format(field_type, field_value))
         field_value = field_value
     elif field_type in ros_time_types:
         field_value = _convert_from_ros_time(field_type, field_value)
     elif _is_ros_binary_type(field_type):
+        # print("++++++++++++_is_ros_binary_type: {} = {}".format(field_type, field_value))
         field_value = _convert_from_ros_binary(field_type, field_value)
     elif _is_field_type_a_primitive_array(field_type):
+        # print("++++++++++++_is_field_type_a_primitive_array: {} = {}".format(field_type, field_value))
         field_value = list(field_value)
     elif _is_field_type_an_array(field_type):
+        # print("++++++++++++_is_field_type_an_array: {} = {}".format(field_type, field_value))
         field_value = _convert_from_ros_array(field_type, field_value)
     else:
+        # print("++++++++++++recursive again: {} = {}".format(field_type, field_value))
         field_value = convert_ros_message_to_dictionary(field_value)
 
     return field_value
@@ -296,8 +305,11 @@ def _convert_from_ros_time(field_type, field_value):
 
 def _convert_from_ros_array(field_type, field_value):
     # use index to raise ValueError if '[' not present
-    #list_type = field_type[:field_type.index('[')]
-    list_type = field_type[field_type.index("<")+1:-1]
+    if field_type.find("<") <0:
+        list_type = field_type[:field_type.index('[')]   # doulbe[8]
+    else:
+        list_type = field_type[field_type.index("<")+1:-1]
+    
     #list_type = field_type.split("<")[1][:-1]
     return [_convert_from_ros_type(list_type, value) for value in field_value]
 
@@ -305,12 +317,15 @@ def _convert_from_ros_array(field_type, field_value):
 #    return zip(message.slot_name, message.slot_type)
 
 def _is_field_type_an_array(field_type):
-    return field_type.find('sequence') >= 0
+    #print('_is_field_type_an_array = {}'.format(field_type))
+    return field_type.find('sequence') >= 0 or field_type.find('[') >=0
 
 def _is_field_type_binary_type_array(field_type):
+    #print('_is_field_type_binary_type_array = {}'.format(field_type))
     return field_type.find('sequence<uint8>') >= 0 or field_type.find('sequence<char>') >= 0
 
 def _is_field_type_a_primitive_array(field_type):
+    #print('_is_field_type_a_primitive_array = {}'.format(field_type))
     bracket_index = field_type.find('<')
     if bracket_index < 0:
         return False
